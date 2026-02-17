@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-windows:
+    name: Build (Windows / MSVC)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build
+        shell: pwsh
+        run: |
+          cl /nologo /std:c11 /W4 /O2 logscan.c
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: logscan-windows
+          path: |
+            logscan.exe
+
+  build-linux:
+    name: Build (Ubuntu / clang)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          clang -std=c11 -Wall -Wextra -Wpedantic -Werror -O2 -o logscan logscan.c
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: logscan-linux
+          path: |
+            logscan
