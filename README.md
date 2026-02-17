@@ -1,4 +1,4 @@
-# logscan
+# logscan-c
 
 A tiny log pattern scanner written in C. It searches for a substring in
 a text file and prints matching lines with line numbers. Designed for
