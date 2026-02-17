@@ -1,7 +1,7 @@
-#include <corecrt.h>
 #include <stdio.h> // printf, fsprintf, fopen, fclose, fgets, perror
 #include <string.h> // strstr
 #include <ctype.h> // tolower
+#include <errno.h>
 
 
 static FILE *open_file_read(const char *filename){
