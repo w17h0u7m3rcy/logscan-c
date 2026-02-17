@@ -12,10 +12,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup MSVC dev environment
+        uses: ilammy/msvc-dev-cmd@v1
+
       - name: Build
         shell: pwsh
         run: |
-          cl /nologo /std:c11 /W4 /O2 logscan.c
+          if (Test-Path ".\logscan.c") {
+            cl /nologo /std:c11 /W4 /O2 logscan.c
+          } elseif (Test-Path ".\src\logscan.c") {
+            cl /nologo /std:c11 /W4 /O2 .\src\logscan.c
+          } else {
+            Write-Error "Could not find logscan.c (expected ./logscan.c or ./src/logscan.c)"
+            exit 1
+          }
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -33,7 +43,14 @@ jobs:
 
       - name: Build
         run: |
-          clang -std=c11 -Wall -Wextra -Wpedantic -Werror -O2 -o logscan logscan.c
+          if [ -f ./logscan.c ]; then
+            clang -std=c11 -Wall -Wextra -Wpedantic -Werror -O2 -o logscan ./logscan.c
+          elif [ -f ./src/logscan.c ]; then
+            clang -std=c11 -Wall -Wextra -Wpedantic -Werror -O2 -o logscan ./src/logscan.c
+          else
+            echo "Could not find logscan.c (expected ./logscan.c or ./src/logscan.c)"
+            exit 1
+          fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
