@@ -3,6 +3,30 @@
 #include <ctype.h> // tolower
 #include <errno.h>
 
+static int find_substring_ci_index(const char *haystack, const char *needle) {
+    if (!*needle) return 0; // empty pattern matches at start
+
+    for (size_t i = 0; haystack[i] != '\0'; i++) {
+        size_t j = 0;
+
+        while (needle[j] != '\0' && haystack[i + j] != '\0') {
+            unsigned char a = (unsigned char)haystack[i + j];
+            unsigned char b = (unsigned char)needle[j];
+
+            if (tolower(a) != tolower(b)) {
+                break;
+            }
+            j++;
+        }
+
+        if (needle[j] == '\0') {
+            return (int)i; // return column
+        }
+    }
+
+    return -1;
+}
+
 
 static FILE *open_file_read(const char *filename){
     #if defined(_MSC_VER)
@@ -19,50 +43,31 @@ static FILE *open_file_read(const char *filename){
     #endif
 }
 
-static int contains_substring_ci(const char *haystack, const char *needle) {
-    if (!*needle) return 1; // empty pattern
-
-    for (size_t i = 0; haystack[i] != '\0'; i++) {
-        size_t j = 0;
-
-        while (needle[j] != '\0' && haystack[i + j] != '\0') {
-            unsigned char a = (unsigned char)haystack[i + j];
-            unsigned char b = (unsigned char)needle[j];
-
-            if (tolower(a) != tolower(b)) {
-                break;
-            }
-            j++;
-        }
-
-        if (needle[j] == '\0') {
-            return 1; // pattern found
-        }
-    }
-
-    return 0; // pattern not found
-}
-
 
 #define MAX_LINE 1024
 
 int main(int argc, char *argv[]){
 
-    if (argc != 3 && argc != 4){
-        fprintf(stderr, "Usage %s <file> <pattern> [-i]\n", argv[0]);
+    if (argc != 3 && argc > 5){
+        fprintf(stderr, "Usage %s <file> <pattern> [-i] [--col]\n", argv[0]);
         return 1;
     }
 
     int ignore_case = 0;
+    int show_column = 0;
 
-    if (argc == 4){
-        if (strcmp(argv[3], "-i") !=0){
-            fprintf(stderr, "Usage: %s <file> <pattern> [-i]\n", argv[0]);
-            return 1;
+    for (int i = 3; i < argc; i++){
+        if (strcmp(argv[i], "-i") == 0){
+            ignore_case = 1;
         }
-
-        ignore_case = 1;
+        else if (strcmp(argv[i], "--col") == 0){
+            show_column = 1;
+        } else {
+            fprintf(stderr, "Unknown opotions: %s\n", argv[i]);
+            fprintf(stderr, "Usage: %s <file> <pattern> [-i] [--col]\n", argv[0]);
+        }
     }
+
 
 
     const char *filename = argv[1];
@@ -84,16 +89,37 @@ int main(int argc, char *argv[]){
 
         line_no++;
 
-        int found = 0;
+        int idx = -1;
 
-        if (!ignore_case){
-            found = (strstr(line, pattern) != NULL);
+        if (!ignore_case) {
+            const char *p = strstr(line, pattern);
+            if (p != NULL) {
+                idx = (int)(p - line);
+            }
         } else {
-            found = contains_substring_ci(line, pattern);
+            idx = find_substring_ci_index(line, pattern);
         }
 
-        if (found){
+        if (idx >= 0) {
             printf("[%d] %s", line_no, line);
+
+            if (show_column) {
+                char prefix[64];
+                int prefix_len = snprintf(prefix, sizeof(prefix), "[%d] ", line_no);
+                if (prefix_len < 0) prefix_len = 0;
+
+                // 1) espacios del prefijo
+                for (int k = 0; k < prefix_len; k++) putchar(' ');
+
+                // 2) espacios hasta la columna del match
+                for (int k = 0; k < idx; k++) putchar(' ');
+
+                // 3) carets del largo del patrón
+                for (size_t k = 0; pattern[k] != '\0'; k++) putchar('^');
+
+                putchar('\n');
+            }
+
             matches++;
         }
 
